@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Upload RDF - Book Recommendation System</title>
+    <link rel="stylesheet" href="/css/style.css">
+    <link rel="stylesheet" href="/css/chatbot.css">
+    <script src="https://unpkg.com/vis-network/standalone/umd/vis-network.min.js"></script>
+</head>
+
+<body>
+    <nav>
+        <a href="/" class="brand">BookRDF</a>
+        <a href="/">Home</a>
+        <a href="/books.html">Books</a>
+        <a href="/manage.html">Manage</a>
+        <a href="/upload.html" class="active">Upload RDF</a>
+    </nav>
+
+    <div class="container">
+        <h1>RDF Graph Visualizer</h1>
+
+        <div class="card">
+            <h2>Upload RDF/XML File</h2>
+            <div class="upload-area" id="upload-area" onclick="document.getElementById('file-input').click()">
+                <input type="file" id="file-input" accept=".rdf,.xml,.owl" />
+                <p>Click to select an RDF/XML file</p>
+                <p style="font-size:12px; color:#999; margin-top:4px;">Supports .rdf, .xml, .owl</p>
+            </div>
+            <div style="margin-top: 12px; display: flex; gap: 8px;">
+                <button class="btn" id="upload-btn" disabled>Upload & Visualize</button>
+                <button class="btn btn-success" id="show-current-btn">Show Current Model</button>
+            </div>
+        </div>
+
+        <div id="status"></div>
+
+        <div class="card" style="margin-top: 16px;">
+            <h2>RDF Graph</h2>
+            <div id="graph-container"></div>
+        </div>
+    </div>
+
+    <script>
+        const fileInput = document.getElementById('file-input');
+        const uploadBtn = document.getElementById('upload-btn');
+        const showCurrentBtn = document.getElementById('show-current-btn');
+        const statusDiv = document.getElementById('status');
+
+        fileInput.addEventListener('change', () => {
+            uploadBtn.disabled = !fileInput.files.length;
+            if (fileInput.files.length) {
+                document.querySelector('#upload-area p').textContent = fileInput.files[0].name;
+            }
+        });
+
+        uploadBtn.addEventListener('click', () => {
+            const file = fileInput.files[0];
+            if (!file) return;
+
+            const formData = new FormData();
+            formData.append('file', file);
+
+            statusDiv.innerHTML = '<div class="alert">Uploading and parsing...</div>';
+
+            fetch('/api/rdf/upload', { method: 'POST', body: formData })
+                .then(r => r.json())
+                .then(data => {
+                    if (data.error) {
+                        statusDiv.innerHTML = '<div class="alert alert-error">' + data.error + '</div>';
+                        return;
+                    }
+                    statusDiv.innerHTML = '<div class="alert alert-success">File parsed successfully. Nodes: ' + data.nodes.length + ', Edges: ' + data.edges.length + '</div>';
+                    renderGraph(data);
+                })
+                .catch(err => {
+                    statusDiv.innerHTML = '<div class="alert alert-error">Error: ' + err.message + '</div>';
+                });
+        });
+
+        showCurrentBtn.addEventListener('click', () => {
+            statusDiv.innerHTML = '<div class="alert">Loading current model...</div>';
+            fetch('/api/rdf/graph')
+                .then(r => r.json())
+                .then(data => {
+                    statusDiv.innerHTML = '<div class="alert alert-success">Current model loaded. Nodes: ' + data.nodes.length + ', Edges: ' + data.edges.length + '</div>';
+                    renderGraph(data);
+                })
+                .catch(err => {
+                    statusDiv.innerHTML = '<div class="alert alert-error">Error: ' + err.message + '</div>';
+                });
+        });
+
+        function renderGraph(data) {
+            const container = document.getElementById('graph-container');
+
+            const colorMap = {
+                'book': { background: '#3498db', border: '#2980b9', font: { color: '#fff' } },
+                'user': { background: '#e74c3c', border: '#c0392b', font: { color: '#fff' } },
+                'theme': { background: '#9b59b6', border: '#8e44ad', font: { color: '#fff' } },
+                'level': { background: '#27ae60', border: '#219a52', font: { color: '#fff' } },
+                'literal': { background: '#f39c12', border: '#e67e22', font: { color: '#fff' }, shape: 'box' },
+                'other': { background: '#95a5a6', border: '#7f8c8d', font: { color: '#fff' } }
+            };
+
+            const nodes = data.nodes.map(n => {
+                const colors = colorMap[n.group] || colorMap['other'];
+                return {
+                    id: n.id,
+                    label: n.label,
+                    color: { background: colors.background, border: colors.border },
+                    font: colors.font || { color: '#fff' },
+                    shape: colors.shape || 'ellipse'
+                };
+            });
+
+            const edges = data.edges.map(e => ({
+                id: e.id,
+                from: e.from,
+                to: e.to,
+                label: e.label,
+                font: { size: 10, color: '#666' },
+                arrows: 'to',
+                color: { color: '#bdc3c7' }
+            }));
+
+            const network = new vis.Network(container, {
+                nodes: new vis.DataSet(nodes),
+                edges: new vis.DataSet(edges)
+            }, {
+                physics: {
+                    stabilization: { iterations: 100 },
+                    barnesHut: { gravitationalConstant: -3000 }
+                },
+                interaction: { hover: true },
+                layout: { improvedLayout: true }
+            });
+        }
+    </script>
+    <script src="/js/chatbot.js"></script>
+</body>
+
+</html>

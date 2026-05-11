@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Book Detail - Book Recommendation System</title>
+    <link rel="stylesheet" href="/css/style.css">
+    <link rel="stylesheet" href="/css/chatbot.css">
+</head>
+
+<body>
+    <nav>
+        <a href="/" class="brand">BookRDF</a>
+        <a href="/">Home</a>
+        <a href="/books.html">Books</a>
+        <a href="/manage.html">Manage</a>
+        <a href="/upload.html">Upload RDF</a>
+    </nav>
+
+    <div class="container">
+        <p><a href="/books.html">&larr; Back to Books</a></p>
+
+        <div class="card" id="book-detail">
+            <p>Loading...</p>
+        </div>
+    </div>
+
+    <script>
+        const params = new URLSearchParams(window.location.search);
+        const bookId = params.get('id');
+
+        if (!bookId) {
+            document.getElementById('book-detail').innerHTML = '<p>No book ID specified.</p>';
+        } else {
+            fetch('/api/books/' + bookId)
+                .then(r => {
+                    if (!r.ok) throw new Error('Book not found');
+                    return r.json();
+                })
+                .then(book => {
+                    document.title = book.title + ' - Book Recommendation System';
+                    document.getElementById('book-detail').innerHTML = `
+                        <h1>${book.title}</h1>
+                        <dl class="book-detail">
+                            <dt>Author</dt>
+                            <dd>${book.author}</dd>
+                            <dt>Themes</dt>
+                            <dd>${(book.themes || '').split(', ').map(t => '<span class="badge badge-theme">' + t + '</span>').join(' ')}</dd>
+                            <dt>Reading Level</dt>
+                            <dd><span class="badge badge-level">${book.level}</span></dd>
+                            <dt>URI</dt>
+                            <dd style="font-size:12px; color:#999;">${book.uri}</dd>
+                        </dl>
+                    `;
+                })
+                .catch(err => {
+                    document.getElementById('book-detail').innerHTML = '<p>Book not found.</p>';
+                });
+        }
+    </script>
+    <script src="/js/chatbot.js"></script>
+</body>
+
+</html>

@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Books - Book Recommendation System</title>
+    <link rel="stylesheet" href="/css/style.css">
+    <link rel="stylesheet" href="/css/chatbot.css">
+</head>
+
+<body>
+    <nav>
+        <a href="/" class="brand">BookRDF</a>
+        <a href="/">Home</a>
+        <a href="/books.html" class="active">Books</a>
+        <a href="/manage.html">Manage</a>
+        <a href="/upload.html">Upload RDF</a>
+    </nav>
+
+    <div class="container">
+        <h1>All Books</h1>
+
+        <div class="card">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Title</th>
+                        <th>Author</th>
+                        <th>Themes</th>
+                        <th>Reading Level</th>
+                    </tr>
+                </thead>
+                <tbody id="books-table">
+                    <tr>
+                        <td colspan="4">Loading...</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <script>
+        fetch('/api/books')
+            .then(r => r.json())
+            .then(books => {
+                const tbody = document.getElementById('books-table');
+                if (books.length === 0) {
+                    tbody.innerHTML = '<tr><td colspan="4">No books found.</td></tr>';
+                    return;
+                }
+                tbody.innerHTML = books.map(b => `
+                    <tr>
+                        <td><a href="/book.html?id=${b.id}">${b.title}</a></td>
+                        <td>${b.author}</td>
+                        <td>${(b.themes || '').split(', ').map(t => '<span class="badge badge-theme">' + t + '</span>').join(' ')}</td>
+                        <td><span class="badge badge-level">${b.level}</span></td>
+                    </tr>
+                `).join('');
+            })
+            .catch(err => {
+                document.getElementById('books-table').innerHTML = '<tr><td colspan="4">Error loading books.</td></tr>';
+            });
+    </script>
+    <script src="/js/chatbot.js"></script>
+</body>
+
+</html>

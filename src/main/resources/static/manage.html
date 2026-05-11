@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Manage Books - Book Recommendation System</title>
+    <link rel="stylesheet" href="/css/style.css">
+    <link rel="stylesheet" href="/css/chatbot.css">
+</head>
+
+<body>
+    <nav>
+        <a href="/" class="brand">BookRDF</a>
+        <a href="/">Home</a>
+        <a href="/books.html">Books</a>
+        <a href="/manage.html" class="active">Manage</a>
+        <a href="/upload.html">Upload RDF</a>
+    </nav>
+
+    <div class="container">
+        <h1>Manage Books</h1>
+
+        <!-- Add Book -->
+        <div class="card">
+            <h2>Add a New Book</h2>
+            <div id="add-status"></div>
+            <div class="form-group">
+                <label for="add-title">Title</label>
+                <input type="text" id="add-title" placeholder="Harry Potter">
+            </div>
+            <div class="form-group">
+                <label for="add-author">Author</label>
+                <input type="text" id="add-author" placeholder="J.K. Rowling">
+            </div>
+            <div class="form-group">
+                <label for="add-themes">Themes (comma-separated)</label>
+                <input type="text" id="add-themes" placeholder="Fantasy, Adventure">
+            </div>
+            <div class="form-group">
+                <label for="add-level">Reading Level</label>
+                <select id="add-level">
+                    <option value="Beginner">Beginner</option>
+                    <option value="Intermediate">Intermediate</option>
+                    <option value="Advanced">Advanced</option>
+                </select>
+            </div>
+            <button class="btn" id="add-btn">Add Book</button>
+        </div>
+
+        <!-- Modify Book -->
+        <div class="card">
+            <h2>Modify a Book's Reading Level</h2>
+            <div id="modify-status"></div>
+            <div class="form-group">
+                <label for="modify-book">Select Book</label>
+                <select id="modify-book">
+                    <option value="">Loading books...</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label for="modify-level">New Reading Level</label>
+                <select id="modify-level">
+                    <option value="Beginner">Beginner</option>
+                    <option value="Intermediate">Intermediate</option>
+                    <option value="Advanced">Advanced</option>
+                </select>
+            </div>
+            <button class="btn btn-success" id="modify-btn">Update Level</button>
+        </div>
+    </div>
+
+    <script>
+        // Load books for modify dropdown
+        function loadBooks() {
+            fetch('/api/books')
+                .then(r => r.json())
+                .then(books => {
+                    const select = document.getElementById('modify-book');
+                    select.innerHTML = '<option value="">Select a book</option>';
+                    books.forEach(b => {
+                        const opt = document.createElement('option');
+                        opt.value = b.id;
+                        opt.textContent = b.title + ' (Level: ' + b.level + ')';
+                        select.appendChild(opt);
+                    });
+                });
+        }
+
+        loadBooks();
+
+        // Add book
+        document.getElementById('add-btn').addEventListener('click', () => {
+            const title = document.getElementById('add-title').value.trim();
+            const author = document.getElementById('add-author').value.trim();
+            const themes = document.getElementById('add-themes').value.split(',').map(t => t.trim()).filter(t => t);
+            const level = document.getElementById('add-level').value;
+            const statusDiv = document.getElementById('add-status');
+
+            if (!title) {
+                statusDiv.innerHTML = '<div class="alert alert-error">Title is required</div>';
+                return;
+            }
+
+            fetch('/api/books', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ title, author, themes, readingLevel: level })
+            })
+                .then(r => r.json())
+                .then(data => {
+                    if (data.error) {
+                        statusDiv.innerHTML = '<div class="alert alert-error">' + data.error + '</div>';
+                    } else {
+                        statusDiv.innerHTML = '<div class="alert alert-success">' + data.message + '</div>';
+                        document.getElementById('add-title').value = '';
+                        document.getElementById('add-author').value = '';
+                        document.getElementById('add-themes').value = '';
+                        loadBooks();
+                    }
+                })
+                .catch(err => {
+                    statusDiv.innerHTML = '<div class="alert alert-error">Error: ' + err.message + '</div>';
+                });
+        });
+
+        // Modify book
+        document.getElementById('modify-btn').addEventListener('click', () => {
+            const bookId = document.getElementById('modify-book').value;
+            const newLevel = document.getElementById('modify-level').value;
+            const statusDiv = document.getElementById('modify-status');
+
+            if (!bookId) {
+                statusDiv.innerHTML = '<div class="alert alert-error">Please select a book</div>';
+                return;
+            }
+
+            fetch('/api/books/' + bookId, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ readingLevel: newLevel })
+            })
+                .then(r => r.json())
+                .then(data => {
+                    if (data.error) {
+                        statusDiv.innerHTML = '<div class="alert alert-error">' + data.error + '</div>';
+                    } else {
+                        statusDiv.innerHTML = '<div class="alert alert-success">' + data.message + '</div>';
+                        loadBooks();
+                    }
+                })
+                .catch(err => {
+                    statusDiv.innerHTML = '<div class="alert alert-error">Error: ' + err.message + '</div>';
+                });
+        });
+    </script>
+    <script src="/js/chatbot.js"></script>
+</body>
+
+</html>
