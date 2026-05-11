@@ -1,0 +1,63 @@
+PREFIX bookrec: <http://example.org/ontology/bookrec#>
+PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
+PREFIX owl: <http://www.w3.org/2002/07/owl#>
+
+### QUERY 1: List all books with their authors and reading levels
+
+SELECT ?title ?author ?level
+WHERE {
+  ?book rdf:type bookrec:Book .
+  ?book bookrec:hasTitle ?title .
+  ?book bookrec:hasAuthor ?author .
+  ?book bookrec:hasReadingLevel ?levelInd .
+  ?levelInd rdfs:label ?level .
+}
+ORDER BY ?title
+
+### QUERY 2: Find all books that belong to the Science Fiction theme
+
+SELECT ?title ?author
+WHERE {
+  ?book rdf:type bookrec:Book .
+  ?book bookrec:hasTitle ?title .
+  ?book bookrec:hasAuthor ?author .
+  ?book bookrec:hasTheme bookrec:ScienceFiction .
+}
+
+### QUERY 3: Find recommended books for each user (books matching the user's preferred theme)
+
+SELECT ?userName ?bookTitle
+WHERE {
+  ?user rdf:type bookrec:User .
+  ?user bookrec:hasName ?userName .
+  ?user bookrec:prefersTheme ?theme .
+  ?book rdf:type bookrec:Book .
+  ?book bookrec:hasTitle ?bookTitle .
+  ?book bookrec:hasTheme ?theme .
+}
+
+### QUERY 4: List all users with their preferences
+
+SELECT ?name ?themeName ?levelName
+WHERE {
+  ?user rdf:type bookrec:User .
+  ?user bookrec:hasName ?name .
+  ?user bookrec:prefersTheme ?theme .
+  ?theme rdfs:label ?themeName .
+  ?user bookrec:userHasReadingLevel ?level .
+  ?level rdfs:label ?levelName .
+}
+
+### QUERY 5: Find all themes and the books that belong to each theme
+
+SELECT ?themeName (GROUP_CONCAT(?title; SEPARATOR=", ") AS ?books)
+WHERE {
+  ?theme rdf:type bookrec:Theme .
+  ?theme rdfs:label ?themeName .
+  ?book rdf:type bookrec:Book .
+  ?book bookrec:hasTitle ?title .
+  ?book bookrec:hasTheme ?theme .
+}
+GROUP BY ?themeName
+ORDER BY ?themeName
